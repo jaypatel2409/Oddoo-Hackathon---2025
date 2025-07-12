@@ -23,7 +23,10 @@ const adminMessageSchema = new mongoose.Schema({
     enum: ['low', 'medium', 'high', 'urgent'],
     default: 'medium'
   },
-  
+  isActive: {
+    type: Boolean,
+    default: true
+  },
   expiresAt: {
     type: Date,
     default: null
