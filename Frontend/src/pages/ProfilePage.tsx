@@ -85,7 +85,23 @@ export default function ProfilePage() {
   };
 
   return (
-
+    <div className="min-h-screen bg-muted/30">
+      {/* Header */}
+      <header className="bg-background border-b">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <Link to="/" className="flex items-center gap-2">
+              <Users className="w-6 h-6 text-primary" />
+              <span className="text-xl font-bold">SkillSwap</span>
+            </Link>
+            <nav className="flex items-center gap-6">
+              <Link to="/browse" className="text-muted-foreground hover:text-foreground">Browse</Link>
+              <Link to="/swaps" className="text-muted-foreground hover:text-foreground">My Swaps</Link>
+              <Link to="/profile" className="text-foreground font-medium">Profile</Link>
+            </nav>
+          </div>
+        </div>
+      </header>
 
       <div className="container mx-auto px-6 py-8">
         <div className="max-w-4xl mx-auto">
