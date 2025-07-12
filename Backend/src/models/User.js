@@ -63,6 +63,10 @@ const userSchema = new mongoose.Schema({
       type: String,
       enum: ['beginner', 'intermediate', 'advanced', 'expert'],
       default: 'intermediate'
+    },
+    isApproved: {
+      type: Boolean,
+      default: true
     }
   }],
   skillsWanted: [{

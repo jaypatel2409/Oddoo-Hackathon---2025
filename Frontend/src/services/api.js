@@ -165,6 +165,60 @@ class ApiService {
       body: JSON.stringify(feedbackData),
     });
   }
+
+  // Admin methods
+  async getUsers(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/admin/users?${queryString}`);
+  }
+
+  async updateUserStatus(userId, statusData) {
+    return this.request(`/admin/users/${userId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(statusData),
+    });
+  }
+
+  async updateSkillApproval(userId, skillName, isApproved) {
+    return this.request(`/admin/users/${userId}/skills/${encodeURIComponent(skillName)}/approve`, {
+      method: 'PUT',
+      body: JSON.stringify({ isApproved }),
+    });
+  }
+
+  async getAdminMessages(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/admin/messages?${queryString}`);
+  }
+
+  async createAdminMessage(messageData) {
+    return this.request('/admin/messages', {
+      method: 'POST',
+      body: JSON.stringify(messageData),
+    });
+  }
+
+  async updateAdminMessage(messageId, messageData) {
+    return this.request(`/admin/messages/${messageId}`, {
+      method: 'PUT',
+      body: JSON.stringify(messageData),
+    });
+  }
+
+  async deleteAdminMessage(messageId) {
+    return this.request(`/admin/messages/${messageId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async downloadReport(reportType, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/admin/reports/${reportType}?${queryString}`);
+  }
+
+  async getPublicMessages() {
+    return this.request('/admin/messages/public');
+  }
 }
 
 export const apiService = new ApiService();

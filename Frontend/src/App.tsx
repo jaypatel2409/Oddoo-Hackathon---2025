@@ -11,6 +11,7 @@ import ProfilePage from "./pages/ProfilePage";
 import PublicProfilePage from "./pages/PublicProfilePage";
 import BrowsePage from "./pages/BrowsePage";
 import SwapsPage from "./pages/SwapsPage";
+import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/profile/:userId" element={<PublicProfilePage />} />
               <Route path="/browse" element={<BrowsePage />} />
               <Route path="/swaps" element={<SwapsPage />} />
+              <Route path="/admin" element={<AdminPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

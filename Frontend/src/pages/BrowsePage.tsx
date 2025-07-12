@@ -201,6 +201,11 @@ export default function BrowsePage() {
               <Link to="/browse" className="text-foreground font-medium">Browse</Link>
               <Link to="/swaps" className="text-muted-foreground hover:text-foreground">My Swaps</Link>
               <Link to="/profile" className="text-muted-foreground hover:text-foreground">Profile</Link>
+              {user?.isAdmin && (
+                <Link to="/admin" className="text-muted-foreground hover:text-foreground">
+                  Admin Panel
+                </Link>
+              )}
               <Button 
                 variant="outline" 
                 onClick={handleLogout}

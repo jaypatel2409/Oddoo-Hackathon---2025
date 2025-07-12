@@ -83,6 +83,7 @@ export const loginUser = async (req, res) => {
         introduction: user.introduction,
         profilePhoto: user.profilePhoto,
         role: user.role,
+        isAdmin: user.role === 'admin',
         isEmailVerified: user.isEmailVerified,
         isProfileComplete: user.isProfileComplete,
         token: generateToken(user._id)

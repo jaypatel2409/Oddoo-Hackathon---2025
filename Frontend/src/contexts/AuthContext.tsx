@@ -11,12 +11,14 @@ interface User {
     publicId?: string;
   };
   role: string;
+  isAdmin?: boolean;
   isEmailVerified: boolean;
   introduction?: string;
   skillsOffered: Array<{
     name: string;
     description?: string;
     level: string;
+    isApproved?: boolean;
   }>;
   skillsWanted: Array<{
     name: string;
