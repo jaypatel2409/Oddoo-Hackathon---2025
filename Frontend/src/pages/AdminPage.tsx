@@ -26,11 +26,13 @@ import {
   Activity,
   UserCheck,
   UserX,
-  ArrowRight
+  ArrowRight,
+  LogOut
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import apiService from "../services/api";
 import { useToast } from "../hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface User {
   _id: string;
@@ -122,9 +124,12 @@ export default function AdminPage() {
   const [messageType, setMessageType] = useState<'info' | 'warning' | 'alert'>('info');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [swapPage, setSwapPage] = useState(1);
+  const [swapTotalPages, setSwapTotalPages] = useState(1);
 
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Check if user is admin
   useEffect(() => {
@@ -148,9 +153,10 @@ export default function AdminPage() {
       const usersResponse = await apiService.getUsers();
       setUsers(usersResponse.users);
       
-      // Fetch swap requests
-      const swapsResponse = await apiService.getSwapRequests({ limit: 100 });
-      setSwapRequests(swapsResponse.swapRequests);
+      // Fetch swap requests with pagination
+      const swapsResponse = await apiService.getSwapRequests({ page: swapPage, limit: 10 });
+      setSwapRequests(swapsResponse.swapRequests || swapsResponse.swaps || []);
+      setSwapTotalPages(swapsResponse.totalPages || 1);
       
       // Fetch admin messages
       const messagesResponse = await apiService.getAdminMessages();
@@ -191,7 +197,8 @@ export default function AdminPage() {
     if (user?.isAdmin) {
       fetchAdminData();
     }
-  }, [user]);
+    // eslint-disable-next-line
+  }, [user, swapPage]);
 
   const handleBanUser = async (userId: string, ban: boolean) => {
     try {
@@ -247,7 +254,7 @@ export default function AdminPage() {
       setIsSubmitting(true);
       await apiService.createAdminMessage({
         title: messageTitle.trim(),
-        message: messageContent.trim(),
+        content: messageContent.trim(), // FIX: use 'content' instead of 'message'
         type: messageType
       });
       
@@ -319,6 +326,11 @@ export default function AdminPage() {
       .slice(0, 2);
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   if (!user?.isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -354,6 +366,10 @@ export default function AdminPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Welcome, {user.name}</span>
+              <Button variant="outline" onClick={handleLogout} className="gap-2">
+                <LogOut className="w-4 h-4" />
+                Logout
+              </Button>
             </div>
           </div>
         </div>
@@ -565,8 +581,18 @@ export default function AdminPage() {
           {/* Swaps Tab */}
           <TabsContent value="swaps" className="space-y-6">
             <h2 className="text-xl font-semibold">Swap Monitoring</h2>
-            
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between mb-4">
+              <span>Page {swapPage} of {swapTotalPages}</span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setSwapPage(p => Math.max(1, p - 1))} disabled={swapPage === 1}>Prev</Button>
+                <Button variant="outline" size="sm" onClick={() => setSwapPage(p => Math.min(swapTotalPages, p + 1))} disabled={swapPage === swapTotalPages}>Next</Button>
+              </div>
+            </div>
             <div className="space-y-4">
+              {swapRequests.length === 0 && (
+                <div className="text-center text-muted-foreground">No swaps found.</div>
+              )}
               {swapRequests.map((swap) => (
                 <Card key={swap._id}>
                   <CardHeader>
@@ -810,6 +836,45 @@ export default function AdminPage() {
                 )}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Details Modal */}
+      <Dialog open={showUserModal} onOpenChange={setShowUserModal}>
+        <DialogContent className="max-w-3xl overflow-x-auto">
+          <DialogHeader>
+            <DialogTitle>All User Details</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm border">
+              <thead>
+                <tr className="bg-muted">
+                  <th className="p-2 border">Name</th>
+                  <th className="p-2 border">Email</th>
+                  <th className="p-2 border">Status</th>
+                  <th className="p-2 border">Skills Offered</th>
+                  <th className="p-2 border">Skills Wanted</th>
+                  <th className="p-2 border">Banned</th>
+                  <th className="p-2 border">Admin</th>
+                  <th className="p-2 border">Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u._id} className="even:bg-muted/50">
+                    <td className="p-2 border">{u.name}</td>
+                    <td className="p-2 border">{u.email}</td>
+                    <td className="p-2 border">{u.isBanned ? 'Banned' : 'Active'}</td>
+                    <td className="p-2 border">{u.skillsOffered.map(s => s.name).join(', ')}</td>
+                    <td className="p-2 border">{u.skillsWanted.map(s => s.name).join(', ')}</td>
+                    <td className="p-2 border text-center">{u.isBanned ? '✔️' : ''}</td>
+                    <td className="p-2 border text-center">{u.isAdmin ? '✔️' : ''}</td>
+                    <td className="p-2 border">{formatDate(u.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </DialogContent>
       </Dialog>

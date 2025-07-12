@@ -65,6 +65,9 @@ export default function BrowsePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Debug log for user object
+  console.log('User object:', user);
+
   const locations = ["all", ...gujaratCities];
 
   // Fetch users from backend

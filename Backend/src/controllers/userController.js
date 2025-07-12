@@ -47,6 +47,7 @@ export const registerUser = async (req, res) => {
         introduction: user.introduction,
         profilePhoto: user.profilePhoto,
         role: user.role,
+        isAdmin: user.role === 'admin',
         isEmailVerified: user.isEmailVerified,
         isProfileComplete: user.isProfileComplete,
         token: generateToken(user._id)
@@ -142,6 +143,7 @@ export const getUserProfile = async (req, res) => {
         availability: user.availability,
         isPublic: user.isPublic,
         role: user.role,
+        isAdmin: user.role === 'admin',
         isEmailVerified: user.isEmailVerified,
         isProfileComplete: user.isProfileComplete,
         rating: user.rating,
@@ -204,10 +206,12 @@ export const updateUserProfile = async (req, res) => {
         availability: updatedUser.availability,
         isPublic: updatedUser.isPublic,
         role: updatedUser.role,
+        isAdmin: updatedUser.role === 'admin',
         isEmailVerified: updatedUser.isEmailVerified,
         isProfileComplete: updatedUser.isProfileComplete,
         rating: updatedUser.rating,
-        token: generateToken(updatedUser._id)
+        lastActive: updatedUser.lastActive,
+        createdAt: updatedUser.createdAt
       });
     } else {
       res.status(404).json({ message: 'User not found' });

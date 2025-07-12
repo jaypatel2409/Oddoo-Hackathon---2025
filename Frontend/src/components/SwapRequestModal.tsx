@@ -212,7 +212,7 @@ export default function SwapRequestModal({
                       </SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="no-skills" disabled>
                       No skills available
                     </SelectItem>
                   )}
