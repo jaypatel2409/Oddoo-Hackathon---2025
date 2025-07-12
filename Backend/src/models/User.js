@@ -17,18 +17,36 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    required: function() {
+      return !this.googleId; // Password is required only if not using Google OAuth
+    },
     minlength: [6, 'Password must be at least 6 characters'],
     select: false
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  profilePhoto: {
+    url: {
+      type: String,
+      default: null
+    },
+    publicId: {
+      type: String,
+      default: null
+    }
   },
   location: {
     type: String,
     trim: true,
     maxlength: [100, 'Location cannot be more than 100 characters']
   },
-  profilePhoto: {
+  introduction: {
     type: String,
-    default: null
+    trim: true,
+    maxlength: [1000, 'Introduction cannot be more than 1000 characters']
   },
   skillsOffered: [{
     name: {
@@ -45,6 +63,10 @@ const userSchema = new mongoose.Schema({
       type: String,
       enum: ['beginner', 'intermediate', 'advanced', 'expert'],
       default: 'intermediate'
+    },
+    isApproved: {
+      type: Boolean,
+      default: true
     }
   }],
   skillsWanted: [{
@@ -96,6 +118,14 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  isProfileComplete: {
+    type: Boolean,
+    default: false
+  },
   rating: {
     average: {
       type: Number,
@@ -107,6 +137,10 @@ const userSchema = new mongoose.Schema({
       type: Number,
       default: 0
     }
+  },
+  lastActive: {
+    type: Date,
+    default: Date.now
   },
   createdAt: {
     type: Date,
@@ -120,17 +154,26 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Hash password before saving
+// Hash password before saving (only if password is provided and not using Google OAuth)
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
-    next();
+  if (!this.isModified('password') || this.googleId) {
+    return next();
   }
+  
+  if (!this.password) {
+    return next(new Error('Password is required for non-Google users'));
+  }
+  
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 // Compare password method
 userSchema.methods.matchPassword = async function(enteredPassword) {
+  if (!this.password) {
+    return false;
+  }
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
@@ -141,6 +184,41 @@ userSchema.methods.updateRating = function(newRating) {
   this.rating.average = totalRating / this.rating.count;
   return this.save();
 };
+
+// Update last active timestamp
+userSchema.methods.updateLastActive = function() {
+  this.lastActive = new Date();
+  return this.save();
+};
+
+// Check if profile is complete
+userSchema.methods.checkProfileComplete = function() {
+  const hasBasicInfo = this.name && this.email;
+  const hasSkills = this.skillsOffered && this.skillsOffered.length > 0;
+  const hasWantedSkills = this.skillsWanted && this.skillsWanted.length > 0;
+  const hasIntroduction = this.introduction && this.introduction.trim().length > 0;
+  
+  this.isProfileComplete = hasBasicInfo && hasSkills && hasWantedSkills && hasIntroduction;
+  return this.isProfileComplete;
+};
+
+// Get user initials
+userSchema.methods.getInitials = function() {
+  return this.name
+    .split(' ')
+    .map(word => word.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+// Virtual for profile photo URL
+userSchema.virtual('profilePhotoUrl').get(function() {
+  return this.profilePhoto?.url || null;
+});
+
+// Ensure virtual fields are serialized
+userSchema.set('toJSON', { virtuals: true });
 
 const User = mongoose.model('User', userSchema);
 
