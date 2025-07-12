@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,25 +18,42 @@ import {
   Edit3,
   Save,
   Users,
-  Upload
+  Upload,
+  LogOut
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../hooks/use-toast";
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isPublic, setIsPublic] = useState(true);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
-  const [fullName, setFullName] = useState("Sarah Chen");
-  const [location, setLocation] = useState("San Francisco, CA");
-  const [skillsOffered, setSkillsOffered] = useState([
-    "React Development", "UI/UX Design", "JavaScript", "Python"
-  ]);
-  const [skillsWanted, setSkillsWanted] = useState([
-    "Spanish Language", "Guitar Playing", "Photography"
-  ]);
+  const [fullName, setFullName] = useState("");
+  const [location, setLocation] = useState("");
+  const [introduction, setIntroduction] = useState("");
+  const [skillsOffered, setSkillsOffered] = useState<string[]>([]);
+  const [skillsWanted, setSkillsWanted] = useState<string[]>([]);
   const [newSkillOffered, setNewSkillOffered] = useState("");
   const [newSkillWanted, setNewSkillWanted] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { user, updateUser, setShowProfileCompletionModal, logout } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Load user data on component mount
+  useEffect(() => {
+    if (user) {
+      setFullName(user.name || "");
+      setLocation(user.location || "");
+      setIntroduction(user.introduction || "");
+      setSkillsOffered(user.skillsOffered?.map(skill => skill.name) || []);
+      setSkillsWanted(user.skillsWanted?.map(skill => skill.name) || []);
+      setProfilePhoto(user.profilePhoto?.url || null);
+    }
+  }, [user]);
 
   const addSkillOffered = () => {
     if (newSkillOffered.trim()) {
@@ -58,6 +75,49 @@ export default function ProfilePage() {
 
   const removeSkillWanted = (skill: string) => {
     setSkillsWanted(skillsWanted.filter(s => s !== skill));
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      setIsSaving(true);
+      
+      const profileData = {
+        name: fullName,
+        location,
+        introduction,
+        skillsOffered: skillsOffered.map(skill => ({
+          name: skill,
+          level: 'intermediate'
+        })),
+        skillsWanted: skillsWanted.map(skill => ({
+          name: skill,
+          level: 'beginner'
+        }))
+      };
+
+      await updateUser(profileData);
+      
+      setIsEditing(false);
+      setShowProfileCompletionModal(false);
+      
+      toast({
+        title: "Success",
+        description: "Profile updated successfully!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   };
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,6 +158,14 @@ export default function ProfilePage() {
               <Link to="/browse" className="text-muted-foreground hover:text-foreground">Browse</Link>
               <Link to="/swaps" className="text-muted-foreground hover:text-foreground">My Swaps</Link>
               <Link to="/profile" className="text-foreground font-medium">Profile</Link>
+              <Button 
+                variant="outline" 
+                onClick={handleLogout}
+                className="gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </Button>
             </nav>
           </div>
         </div>
@@ -164,23 +232,35 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <Button 
-                  variant={isEditing ? "default" : "outline"}
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="gap-2"
-                >
-                  {isEditing ? (
-                    <>
-                      <Save className="w-4 h-4" />
-                      Save Profile
-                    </>
-                  ) : (
-                    <>
-                      <Edit3 className="w-4 h-4" />
-                      Edit Profile
-                    </>
+                <div className="flex gap-2">
+                  {isEditing && (
+                    <Button 
+                      variant="outline"
+                      onClick={() => setIsEditing(false)}
+                      disabled={isSaving}
+                    >
+                      Cancel
+                    </Button>
                   )}
-                </Button>
+                  <Button 
+                    variant={isEditing ? "default" : "outline"}
+                    onClick={isEditing ? handleSaveProfile : () => setIsEditing(true)}
+                    disabled={isSaving}
+                    className="gap-2"
+                  >
+                    {isEditing ? (
+                      <>
+                        <Save className="w-4 h-4" />
+                        {isSaving ? "Saving..." : "Save Profile"}
+                      </>
+                    ) : (
+                      <>
+                        <Edit3 className="w-4 h-4" />
+                        Edit Profile
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
           </Card>
@@ -197,6 +277,49 @@ export default function ProfilePage() {
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Left Column */}
             <div className="lg:col-span-2 space-y-8">
+              {/* Introduction */}
+              <Card className="shadow-elegant border-0">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    About Me
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isEditing ? (
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="introduction">Tell us about yourself</Label>
+                        <Textarea
+                          id="introduction"
+                          placeholder="Share your story, interests, and what motivates you to learn and teach..."
+                          value={introduction}
+                          onChange={(e) => setIntroduction(e.target.value)}
+                          className="mt-2"
+                          rows={4}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {introduction ? (
+                        <p className="text-muted-foreground leading-relaxed">{introduction}</p>
+                      ) : (
+                        <p className="text-muted-foreground italic">No introduction added yet.</p>
+                      )}
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setIsEditing(true)}
+                        className="gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        {introduction ? "Edit About Me" : "Add About Me"}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Skills Offered */}
               <Card className="shadow-elegant border-0">
                 <CardHeader>
@@ -207,20 +330,24 @@ export default function ProfilePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {skillsOffered.map((skill, index) => (
-                      <Badge key={index} variant="default" className="gap-1">
-                        {skill}
-                        {isEditing && (
-                          <X 
-                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                            onClick={() => removeSkillOffered(skill)}
-                          />
-                        )}
-                      </Badge>
-                    ))}
+                    {skillsOffered.length > 0 ? (
+                      skillsOffered.map((skill, index) => (
+                        <Badge key={index} variant="default" className="gap-1">
+                          {skill}
+                          {isEditing && (
+                            <X 
+                              className="w-3 h-3 cursor-pointer hover:text-destructive" 
+                              onClick={() => removeSkillOffered(skill)}
+                            />
+                          )}
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground italic">No skills added yet.</p>
+                    )}
                   </div>
                   
-                  {isEditing && (
+                  {isEditing ? (
                     <div className="flex gap-2">
                       <Input
                         placeholder="Add a skill you can teach"
@@ -232,6 +359,15 @@ export default function ProfilePage() {
                         <Plus className="w-4 h-4" />
                       </Button>
                     </div>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsEditing(true)}
+                      className="gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      {skillsOffered.length > 0 ? "Edit Skills" : "Add Skills"}
+                    </Button>
                   )}
                 </CardContent>
               </Card>
@@ -246,20 +382,24 @@ export default function ProfilePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {skillsWanted.map((skill, index) => (
-                      <Badge key={index} variant="secondary" className="gap-1">
-                        {skill}
-                        {isEditing && (
-                          <X 
-                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                            onClick={() => removeSkillWanted(skill)}
-                          />
-                        )}
-                      </Badge>
-                    ))}
+                    {skillsWanted.length > 0 ? (
+                      skillsWanted.map((skill, index) => (
+                        <Badge key={index} variant="secondary" className="gap-1">
+                          {skill}
+                          {isEditing && (
+                            <X 
+                              className="w-3 h-3 cursor-pointer hover:text-destructive" 
+                              onClick={() => removeSkillWanted(skill)}
+                            />
+                          )}
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground italic">No skills added yet.</p>
+                    )}
                   </div>
                   
-                  {isEditing && (
+                  {isEditing ? (
                     <div className="flex gap-2">
                       <Input
                         placeholder="Add a skill you want to learn"
@@ -271,31 +411,20 @@ export default function ProfilePage() {
                         <Plus className="w-4 h-4" />
                       </Button>
                     </div>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsEditing(true)}
+                      className="gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      {skillsWanted.length > 0 ? "Edit Skills" : "Add Skills"}
+                    </Button>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Bio */}
-              <Card className="shadow-elegant border-0">
-                <CardHeader>
-                  <CardTitle>About Me</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isEditing ? (
-                    <Textarea 
-                      placeholder="Tell others about yourself and your learning goals..."
-                      defaultValue="I'm a frontend developer passionate about creating beautiful user experiences. I love teaching others what I know and learning new skills from the community. Always excited to connect with fellow learners!"
-                      rows={4}
-                    />
-                  ) : (
-                    <p className="text-muted-foreground leading-relaxed">
-                      I'm a frontend developer passionate about creating beautiful user experiences. 
-                      I love teaching others what I know and learning new skills from the community. 
-                      Always excited to connect with fellow learners!
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
+
             </div>
 
             {/* Right Column */}
