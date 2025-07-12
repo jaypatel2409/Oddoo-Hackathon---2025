@@ -10,6 +10,7 @@ import { errorHandler, notFound } from './src/middleware/errorHandler.js';
 import userRoutes from './src/routes/userRoutes.js';
 import swapRoutes from './src/routes/swapRoutes.js';
 import adminRoutes from './src/routes/adminRoutes.js';
+import reviewRoutes from './src/routes/reviewRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -34,7 +35,7 @@ app.use('/api/', limiter);
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://your-frontend-domain.com'] 
-    : ['http://localhost:3000', 'http://localhost:5173'],
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080'],
   credentials: true
 }));
 
@@ -60,6 +61,7 @@ app.get('/health', (req, res) => {
 app.use('/api/users', userRoutes);
 app.use('/api/swaps', swapRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Public admin messages route
 app.get('/api/messages', async (req, res) => {

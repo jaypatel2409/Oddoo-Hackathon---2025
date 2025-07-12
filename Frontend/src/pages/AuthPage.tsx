@@ -7,32 +7,143 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Users, ArrowLeft, Eye, EyeOff, Camera, Upload } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useGoogleLogin } from "@react-oauth/google";
+import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../hooks/use-toast";
+import ProfileCompletionModal from "../components/ProfileCompletionModal";
 
 export default function AuthPage() {
-  const [isLoading, setIsLoading] = useState(false);
   const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
+  const [signInEmail, setSignInEmail] = useState("");
+  const [signInPassword, setSignInPassword] = useState("");
+  const [signUpEmail, setSignUpEmail] = useState("");
+  const [signUpPassword, setSignUpPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [location, setLocation] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const { login, register, googleAuth, isLoading, showProfileCompletionModal, setShowProfileCompletionModal } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Google OAuth login hook
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (response) => {
+      try {
+        await googleAuth(response.access_token);
+        toast({
+          title: "Success",
+          description: "Successfully signed in with Google!",
+        });
+        navigate("/browse");
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "Google sign-in failed",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      console.error('Google login error:', error);
+      toast({
+        title: "Error",
+        description: "Google sign-in failed. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSignInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => setIsLoading(false), 2000);
+    
+    if (!signInEmail || !signInPassword) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await login(signInEmail, signInPassword);
+      toast({
+        title: "Success",
+        description: "Successfully signed in!",
+      });
+      navigate("/browse");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Sign in failed",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    // Simulate Google sign-in
-    setTimeout(() => {
-      setIsLoading(false);
-      // Here you would typically redirect to Google OAuth or handle the response
-      console.log("Google sign-in initiated");
-    }, 1500);
+  const handleSignUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!fullName || !signUpEmail || !signUpPassword || !confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (signUpPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (signUpPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const userData = {
+        name: fullName,
+        email: signUpEmail,
+        password: signUpPassword,
+        location,
+        profilePhoto
+      };
+
+      await register(userData);
+      toast({
+        title: "Success",
+        description: "Account created successfully!",
+      });
+      navigate("/browse");
+      setShowProfileCompletionModal(true);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Registration failed",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleGoogleSignIn = () => {
+    googleLogin();
   };
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,6 +174,12 @@ export default function AuthPage() {
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/50 to-accent/10 flex items-center justify-center p-6">
       {/* Background decoration */}
       <div className="absolute inset-0 bg-gradient-hero opacity-5"></div>
+      
+      {/* Profile Completion Modal */}
+      <ProfileCompletionModal 
+        isOpen={showProfileCompletionModal} 
+        onClose={() => setShowProfileCompletionModal(false)} 
+      />
       
       <div className="w-full max-w-md relative z-10">
         {/* Header */}
@@ -135,10 +252,17 @@ export default function AuthPage() {
                     </div>
                   </div>
 
-                  <form onSubmit={handleSubmit} className="space-y-4">
+                  <form onSubmit={handleSignInSubmit} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" placeholder="Enter your email" required />
+                      <Input 
+                        id="email" 
+                        type="email" 
+                        placeholder="Enter your email" 
+                        value={signInEmail}
+                        onChange={(e) => setSignInEmail(e.target.value)}
+                        required 
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="password">Password</Label>
@@ -147,6 +271,8 @@ export default function AuthPage() {
                           id="password" 
                           type={showSignInPassword ? "text" : "password"} 
                           placeholder="Enter your password" 
+                          value={signInPassword}
+                          onChange={(e) => setSignInPassword(e.target.value)}
                           required 
                         />
                         <Button
@@ -172,7 +298,7 @@ export default function AuthPage() {
               </TabsContent>
               
               <TabsContent value="signup">
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSignUpSubmit} className="space-y-4">
                   {/* Profile Photo Upload */}
                   <div className="space-y-2">
                     <Label>Profile Photo</Label>
@@ -213,7 +339,23 @@ export default function AuthPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
-                    <Input id="signup-email" type="email" placeholder="Enter your email" required />
+                    <Input 
+                      id="signup-email" 
+                      type="email" 
+                      placeholder="Enter your email" 
+                      value={signUpEmail}
+                      onChange={(e) => setSignUpEmail(e.target.value)}
+                      required 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location (Optional)</Label>
+                    <Input 
+                      id="location" 
+                      placeholder="Enter your location" 
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>
@@ -222,6 +364,8 @@ export default function AuthPage() {
                         id="signup-password" 
                         type={showSignUpPassword ? "text" : "password"} 
                         placeholder="Create a password" 
+                        value={signUpPassword}
+                        onChange={(e) => setSignUpPassword(e.target.value)}
                         required 
                       />
                       <Button
@@ -246,6 +390,8 @@ export default function AuthPage() {
                         id="confirm-password" 
                         type={showConfirmPassword ? "text" : "password"} 
                         placeholder="Confirm your password" 
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
                         required 
                       />
                       <Button
