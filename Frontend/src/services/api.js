@@ -95,6 +95,39 @@ class ApiService {
   async getUserById(userId) {
     return this.request(`/users/${userId}`);
   }
+
+  // Review methods
+  async createReview(reviewData) {
+    return this.request('/reviews', {
+      method: 'POST',
+      body: JSON.stringify(reviewData),
+    });
+  }
+
+  async updateReview(reviewId, reviewData) {
+    return this.request(`/reviews/${reviewId}`, {
+      method: 'PUT',
+      body: JSON.stringify(reviewData),
+    });
+  }
+
+  async deleteReview(reviewId) {
+    return this.request(`/reviews/${reviewId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getUserReviews(userId, page = 1, limit = 10) {
+    return this.request(`/reviews/user/${userId}?page=${page}&limit=${limit}`);
+  }
+
+  async getMyReviews(page = 1, limit = 10) {
+    return this.request(`/reviews/my-reviews?page=${page}&limit=${limit}`);
+  }
+
+  async canReviewUser(userId) {
+    return this.request(`/reviews/can-review/${userId}`);
+  }
 }
 
 export const apiService = new ApiService();

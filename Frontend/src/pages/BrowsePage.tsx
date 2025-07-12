@@ -69,8 +69,12 @@ export default function BrowsePage() {
       try {
         setIsLoading(true);
         const response = await apiService.getPublicUsers();
-        setUsers(response.users || []);
-        setFilteredUsers(response.users || []);
+        // Filter out current user and only show public profiles
+        const publicUsers = (response.users || []).filter(fetchedUser => 
+          fetchedUser._id !== user?._id && fetchedUser.isPublic === true
+        );
+        setUsers(publicUsers);
+        setFilteredUsers(publicUsers);
       } catch (error) {
         console.error('Failed to fetch users:', error);
         toast({
@@ -84,7 +88,7 @@ export default function BrowsePage() {
     };
 
     fetchUsers();
-  }, [toast]);
+  }, [toast, user?._id]);
 
   const handleSearch = () => {
     let filtered = users;

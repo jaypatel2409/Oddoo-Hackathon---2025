@@ -237,7 +237,7 @@ export const getPublicUsers = async (req, res) => {
     }
 
     const users = await User.find(query)
-      .select('name location profilePhoto skillsOffered skillsWanted availability rating lastActive')
+      .select('name location profilePhoto skillsOffered skillsWanted availability rating lastActive isPublic introduction')
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ lastActive: -1 })
@@ -262,7 +262,7 @@ export const getPublicUsers = async (req, res) => {
 export const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-      .select('name location profilePhoto skillsOffered skillsWanted availability rating isPublic lastActive');
+      .select('name location profilePhoto skillsOffered skillsWanted availability rating isPublic lastActive introduction createdAt');
 
     if (user && (user.isPublic || req.user._id.toString() === req.params.id)) {
       res.json(user);

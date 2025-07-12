@@ -81,7 +81,7 @@ export default function ProfilePage() {
     try {
       setIsSaving(true);
       
-      const profileData = {
+      const profileData: any = {
         name: fullName,
         location,
         introduction,
@@ -94,6 +94,11 @@ export default function ProfilePage() {
           level: 'beginner'
         }))
       };
+
+      // Include profile photo if it has been changed
+      if (profilePhoto && profilePhoto !== user?.profilePhoto?.url) {
+        profileData.profilePhoto = profilePhoto;
+      }
 
       await updateUser(profileData);
       
