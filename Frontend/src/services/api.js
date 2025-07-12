@@ -128,6 +128,43 @@ class ApiService {
   async canReviewUser(userId) {
     return this.request(`/reviews/can-review/${userId}`);
   }
+
+  // Swap methods
+  async createSwapRequest(swapData) {
+    return this.request('/swaps', {
+      method: 'POST',
+      body: JSON.stringify(swapData),
+    });
+  }
+
+  async getSwapRequests(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/swaps?${queryString}`);
+  }
+
+  async getSwapRequestById(swapId) {
+    return this.request(`/swaps/${swapId}`);
+  }
+
+  async updateSwapStatus(swapId, status) {
+    return this.request(`/swaps/${swapId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async cancelSwapRequest(swapId) {
+    return this.request(`/swaps/${swapId}/cancel`, {
+      method: 'PUT',
+    });
+  }
+
+  async addSwapFeedback(swapId, feedbackData) {
+    return this.request(`/swaps/${swapId}/feedback`, {
+      method: 'POST',
+      body: JSON.stringify(feedbackData),
+    });
+  }
 }
 
 export const apiService = new ApiService();

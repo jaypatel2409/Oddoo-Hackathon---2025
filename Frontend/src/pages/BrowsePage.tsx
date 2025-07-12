@@ -15,11 +15,13 @@ import {
   Clock,
   LogOut,
   Eye,
-  Phone
+  Phone,
+  ArrowRight
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import ProfileCompletionModal from "../components/ProfileCompletionModal";
+import SwapRequestModal from "../components/SwapRequestModal";
 import apiService from "../services/api";
 import { useToast } from "../hooks/use-toast";
 
@@ -57,6 +59,8 @@ export default function BrowsePage() {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showSwapRequestModal, setShowSwapRequestModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   const { user, showProfileCompletionModal, setShowProfileCompletionModal, logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -140,6 +144,19 @@ export default function BrowsePage() {
     toast({
       title: "Contact User",
       description: `Contact information for ${user.name} will be available soon!`,
+    });
+  };
+
+  const handleRequestSwap = (user) => {
+    setSelectedUser(user);
+    setShowSwapRequestModal(true);
+  };
+
+  const handleSwapRequestSent = () => {
+    // Optionally refresh the user list or show a success message
+    toast({
+      title: "Success",
+      description: "Swap request sent successfully! Check your My Swaps page for updates.",
     });
   };
 
@@ -355,10 +372,10 @@ export default function BrowsePage() {
                       variant="default" 
                       size="sm" 
                       className="flex-1 gap-1"
-                      onClick={() => handleContactUser(user)}
+                      onClick={() => handleRequestSwap(user)}
                     >
-                      <Phone className="w-3 h-3" />
-                      Contact
+                      <ArrowRight className="w-3 h-3" />
+                      Request Swap
                     </Button>
                     <Button 
                       variant="outline" 
@@ -385,6 +402,17 @@ export default function BrowsePage() {
           </div>
         )}
       </div>
+
+      {/* Swap Request Modal */}
+      {selectedUser && user && (
+        <SwapRequestModal
+          isOpen={showSwapRequestModal}
+          onClose={() => setShowSwapRequestModal(false)}
+          recipientUser={selectedUser}
+          currentUser={user}
+          onSwapRequestSent={handleSwapRequestSent}
+        />
+      )}
     </div>
   );
 }

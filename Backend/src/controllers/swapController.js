@@ -130,20 +130,32 @@ export const updateSwapStatus = async (req, res) => {
       return res.status(404).json({ message: 'Swap request not found' });
     }
 
-    // Check if user is the recipient and can accept/reject
-    if (swapRequest.recipient.toString() !== req.user._id.toString()) {
+    // Check if user is part of this swap
+    if (swapRequest.requester.toString() !== req.user._id.toString() && 
+        swapRequest.recipient.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this request' });
     }
 
-    // Only allow status updates for pending requests
-    if (swapRequest.status !== 'pending') {
-      return res.status(400).json({ message: 'Can only update pending requests' });
-    }
-
     // Validate status
-    const validStatuses = ['accepted', 'rejected'];
+    const validStatuses = ['accepted', 'rejected', 'completed'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    // Different rules for different statuses
+    if (status === 'accepted' || status === 'rejected') {
+      // Only recipient can accept/reject, and only pending requests
+      if (swapRequest.recipient.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Only recipient can accept/reject requests' });
+      }
+      if (swapRequest.status !== 'pending') {
+        return res.status(400).json({ message: 'Can only accept/reject pending requests' });
+      }
+    } else if (status === 'completed') {
+      // Both participants can mark as completed, but only accepted swaps
+      if (swapRequest.status !== 'accepted') {
+        return res.status(400).json({ message: 'Can only complete accepted swaps' });
+      }
     }
 
     swapRequest.status = status;
